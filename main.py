@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 
 # Функция для чтения данных из файлов JSON
 def load_json(filename):
@@ -40,6 +41,18 @@ def write_domain_tree_to_file(domain_tree, output_filename):
 
 # Основная функция
 def main():
+    # Список скриптов для последовательного запуска
+    scripts = [
+        "domain.py",
+        "subdomain.py",
+    ]   
+
+    # Запускаем каждый скрипт по порядку
+    for script in scripts:
+        script_path = os.path.join(src_folder, script)
+        print(f"Запускаем {script_path}...")
+        subprocess.run(["python", script_path], check=True)
+
     # Чтение данных из файлов JSON
     domain_data = load_json('domain.json')
     subdomain_data = load_json('subdomain.json')
