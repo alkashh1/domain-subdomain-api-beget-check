@@ -2,6 +2,9 @@ import json
 import os
 import subprocess
 
+# Путь к папке src
+src_folder = "src"
+
 # Функция для чтения данных из файлов JSON
 def load_json(filename):
     with open(filename, 'r', encoding='utf-8') as f:
