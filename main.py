@@ -54,7 +54,7 @@ def main():
     for script in scripts:
         script_path = os.path.join(src_folder, script)
         print(f"Запускаем {script_path}...")
-        subprocess.run(["python", script_path], check=True)
+        subprocess.run(["python3", script_path], check=True)
 
     # Чтение данных из файлов JSON
     domain_data = load_json('domain.json')
