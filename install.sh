@@ -60,6 +60,7 @@ mv "$filename" src/
 # Копирование всех файлов в рабочую папку
 SRC_DIR=$(pwd)
 DEST_DIR="/home/zabbix/scripts/DomainTree/"
+mkdir -p "$DEST_DIR"
 cp -r "$SRC_DIR"/* "$DEST_DIR"/
 echo "Все файлы успешно скопированы в $DEST_DIR"
 
