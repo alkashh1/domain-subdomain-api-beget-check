@@ -21,12 +21,12 @@ apt-get install -y python
 echo "Настройка системы..."
 pip install requests
 
-# Копирование в рабочую папку
-SRC_DIR=$(pwd)
-DEST_DIR="/home/zabbix/scripts/DomainTree"
-mkdir -p "$DEST_DIR"
-cp -r "$SRC_DIR"/* "$DEST_DIR"/
-echo "Все файлы успешно скопированы в $DEST_DIR"
+# # Копирование в рабочую папку
+# SRC_DIR=$(pwd)
+# DEST_DIR="/home/zabbix/scripts/DomainTree"
+# mkdir -p "$DEST_DIR"
+# cp -r "$SRC_DIR"/* "$DEST_DIR"/
+# echo "Все файлы успешно скопированы в $DEST_DIR"
 
 # Крон
 cron_job="30 2 * * * /usr/bin/python3 /home/zabbix/scripts/DomainTree/main.py" # Создание задачи
@@ -43,7 +43,31 @@ fi
 
 # Первое выполнение скрипта
 echo "Выполнение скрипта."
-python3 main.py
+
+echo "Требуется создать фаил с логином и паролем"
+# Запрос логина и пароля у пользователя
+read -p "Введите логин: " login
+read -sp "Введите пароль: " password
+echo
+# Имя файла, в который будут записаны данные
+filename="login.txt"
+# Запись логина и пароля в файл в нужном формате
+echo "login = '$login'" > "$filename"
+echo "password = '$password'" >> "$filename"
+chmod 644 "$filename"
+mv "$filename" src/
+
+# Копирование всех файлов в рабочую папку
+SRC_DIR=$(pwd)
+DEST_DIR="/home/zabbix/scripts/DomainTree/"
+cp -r "$SRC_DIR"/* "$DEST_DIR"/
+echo "Все файлы успешно скопированы в $DEST_DIR"
+
+# Удаление login.txt
+rm -f src/"$filename"
+echo "фаил с логином удален"
+
+python3 "$DEST_DIR"/main.py
 
 # Очистка кеша пакетов
 echo "Очистка кеша пакетов..."
