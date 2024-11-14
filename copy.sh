@@ -1,0 +1,1 @@
+mv /home/zabbix/scripts/DomainTree/ssl_https.txt /etc/zabbix/scripts/

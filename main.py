@@ -62,13 +62,14 @@ def build_domain_tree(domain_data, subdomain_data):
     print("Дерево доменов и поддоменов успешно построено")
     return domain_tree
 
-# Функция для записи дерева доменов в файл и создания ssl/nossl файлов
-def write_domain_tree_to_file(domain_tree, output_filename, ssl_filename, nossl_filename):
+# Функция для записи дерева доменов в файл и создания ssl/nossl/ssl_https файлов
+def write_domain_tree_to_file(domain_tree, output_filename, ssl_filename, nossl_filename, ssl_https_filename):
     print(f"Запись дерева доменов в файл: {output_filename}")
     try:
         with open(output_filename, 'w', encoding='utf-8') as f, \
              open(ssl_filename, 'w', encoding='utf-8') as ssl_file, \
-             open(nossl_filename, 'w', encoding='utf-8') as nossl_file:
+             open(nossl_filename, 'w', encoding='utf-8') as nossl_file, \
+             open(ssl_https_filename, 'w', encoding='utf-8') as ssl_https_file:
 
             for domain_id, info in domain_tree.items():
                 ssl_status = "SSL: Да" if info['ssl'] else "SSL: Нет"
@@ -86,12 +87,14 @@ def write_domain_tree_to_file(domain_tree, output_filename, ssl_filename, nossl_
                 # Запись доменов в соответствующие ssl и nossl файлы
                 if info['ssl']:
                     ssl_file.write(f"{info['fqdn']}\n")
+                    ssl_https_file.write(f"{info['fqdn']}\n")
                 else:
                     nossl_file.write(f"{info['fqdn']}\n")
 
         print("Запись в файл завершена успешно")
         print(f"Доменов с SSL записано в {ssl_filename}")
         print(f"Доменов без SSL записано в {nossl_filename}")
+        print(f"Доменов в ssl_https записано в {ssl_https_filename}")
 
     except Exception as e:
         print(f"Ошибка при записи в файл {output_filename}: {e}")
@@ -122,8 +125,8 @@ def main():
     # Построение дерева доменов и поддоменов
     domain_tree = build_domain_tree(domain_data, subdomain_data)
 
-    # Запись дерева доменов в файл и создание ssl/nossl файлов
-    write_domain_tree_to_file(domain_tree, 'domain_tree.txt', 'ssl.txt', 'nossl.txt')
+    # Запись дерева доменов в файл и создание ssl/nossl/ssl_https файлов
+    write_domain_tree_to_file(domain_tree, 'domain_tree.txt', 'ssl.txt', 'nossl.txt', 'ssl_https.txt')
 
     # Удаление файлов JSON
     try:

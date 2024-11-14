@@ -30,6 +30,7 @@ pip install requests
 
 # Крон
 cron_job="30 2 * * * /usr/bin/python3 /home/zabbix/scripts/DomainTree/main.py" # Создание задачи
+cron_job="0 3 * * * /home/zabbix/scripts/DomainTree/copy.sh"
 crontab -l | grep -F "$cron_job" > /dev/null # Проверка создания
 
 # Проверка
