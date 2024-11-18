@@ -6,5 +6,3 @@ nossl.txt
 ssl_https.txt
 manual.txt
 auto.txt
-#больше не нужен
-copy.sh 
