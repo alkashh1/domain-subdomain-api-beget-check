@@ -3,6 +3,7 @@ import os
 import subprocess
 import socket
 import ssl
+import time
 
 # Путь к папке src
 src_folder = "src"
@@ -57,50 +58,67 @@ def build_domain_tree(domain_data, subdomain_data):
     for subdomain in subdomain_data["answer"]["result"]:
         domain_id = subdomain["domain_id"]
         if domain_id in domain_tree:
-            domain_tree[domain_id]["subdomains"].append(subdomain["fqdn"])
+            subdomain_ssl = check_ssl(subdomain["fqdn"])
+            domain_tree[domain_id]["subdomains"].append({
+                "fqdn": subdomain["fqdn"],
+                "ssl": subdomain_ssl
+            })
 
     print("Дерево доменов и поддоменов успешно построено")
     return domain_tree
 
-# Функция для записи дерева доменов в файл и создания ssl/nossl/ssl_https файлов
-def write_domain_tree_to_file(domain_tree, output_filename, ssl_filename, nossl_filename, ssl_https_filename):
+# Функция для записи дерева доменов в файл и создания ssl/nossl/auto файлов
+def write_domain_tree_to_file(domain_tree, output_filename, ssl_filename, nossl_filename, auto_filename):
     print(f"Запись дерева доменов в файл: {output_filename}")
     try:
         with open(output_filename, 'w', encoding='utf-8') as f, \
              open(ssl_filename, 'w', encoding='utf-8') as ssl_file, \
              open(nossl_filename, 'w', encoding='utf-8') as nossl_file, \
-             open(ssl_https_filename, 'w', encoding='utf-8') as ssl_https_file:
+             open(auto_filename, 'w', encoding='utf-8') as auto_file:
 
             for domain_id, info in domain_tree.items():
                 ssl_status = "SSL: Да" if info['ssl'] else "SSL: Нет"
                 f.write(f"Домен: {info['fqdn']} ({ssl_status})\n")
                 
-                # Записываем в файл поддомены
+                # Записываем домен в соответствующие файлы
+                if info['ssl']:
+                    ssl_file.write(f"{info['fqdn']}\n")
+                else:
+                    nossl_file.write(f"{info['fqdn']}\n")
+                
+                # В файл auto.txt записываются все домены
+                auto_file.write(f"{info['fqdn']}\n")
+                
+                # Обработка поддоменов
                 if info['subdomains']:
                     f.write("  Поддомены:\n")
                     for subdomain in info['subdomains']:
-                        f.write(f"    - {subdomain}\n")
+                        sub_ssl_status = "SSL: Да" if subdomain["ssl"] else "SSL: Нет"
+                        f.write(f"    - {subdomain['fqdn']} ({sub_ssl_status})\n")
+
+                        # Записываем поддомены в соответствующие файлы
+                        if subdomain["ssl"]:
+                            ssl_file.write(f"{subdomain['fqdn']}\n")
+                        else:
+                            nossl_file.write(f"{subdomain['fqdn']}\n")
+                        
+                        # В файл auto.txt записываются все поддомены
+                        auto_file.write(f"{subdomain['fqdn']}\n")
                 else:
                     f.write("  Поддоменов нет\n")
-                f.write("\n")
-                
-                # Запись доменов в соответствующие ssl и nossl файлы
-                if info['ssl']:
-                    ssl_file.write(f"{info['fqdn']}\n")
-                    ssl_https_file.write(f"{info['fqdn']}\n")
-                else:
-                    nossl_file.write(f"{info['fqdn']}\n")
 
         print("Запись в файл завершена успешно")
         print(f"Доменов с SSL записано в {ssl_filename}")
         print(f"Доменов без SSL записано в {nossl_filename}")
-        print(f"Доменов в ssl_https записано в {ssl_https_filename}")
+        print(f"Все домены и поддомены записаны в auto: {auto_filename}")
 
     except Exception as e:
         print(f"Ошибка при записи в файл {output_filename}: {e}")
 
 # Основная функция
 def main():
+    start_time = time.time()  # Начало замера времени
+    
     # Список скриптов для последовательного запуска
     scripts = [
         "domain.py",
@@ -125,8 +143,8 @@ def main():
     # Построение дерева доменов и поддоменов
     domain_tree = build_domain_tree(domain_data, subdomain_data)
 
-    # Запись дерева доменов в файл и создание ssl/nossl/ssl_https файлов
-    write_domain_tree_to_file(domain_tree, 'domain_tree.txt', 'ssl.txt', 'nossl.txt', 'ssl_https.txt')
+    # Запись дерева доменов в файл и создание ssl/nossl/auto файлов
+    write_domain_tree_to_file(domain_tree, 'domain_tree.txt', 'ssl.txt', 'nossl.txt', 'auto.txt')
 
     # Удаление файлов JSON
     try:
@@ -135,6 +153,10 @@ def main():
         print("Временные файлы удалены")
     except FileNotFoundError as e:
         print(f"Ошибка при удалении файлов: {e}")
+
+    # Вывод времени выполнения
+    end_time = time.time()  # Конец замера времени
+    print(f"Скрипт выполнен за {end_time - start_time:.2f} секунд.")
 
 if __name__ == "__main__":
     main()
