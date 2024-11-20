@@ -29,34 +29,34 @@ pip install requests
 # echo "Все файлы успешно скопированы в $DEST_DIR"
 
 # Крон
-cron_job="30 2 * * * /usr/bin/python3 /home/zabbix/scripts/DomainTree/main.py" # Создание задачи
-cron_job="0 3 * * * /home/zabbix/scripts/DomainTree/copy.sh"
-crontab -l | grep -F "$cron_job" > /dev/null # Проверка создания
+# cron_job="30 2 * * * /usr/bin/python3 /home/zabbix/scripts/DomainTree/main.py" # Создание задачи
+# cron_job="0 3 * * * /home/zabbix/scripts/DomainTree/copy.sh"
+# crontab -l | grep -F "$cron_job" > /dev/null # Проверка создания
 
 # Проверка
-if [ $? -eq 1 ]; then
-  # Добавляем задачу в crontab
-  (crontab -l; echo "$cron_job") | crontab -
-  echo "Cron-задача успешно добавлена!"
-else
-  echo "Эта задача уже существует в crontab."
-fi
+# if [ $? -eq 1 ]; then
+#   # Добавляем задачу в crontab
+#   (crontab -l; echo "$cron_job") | crontab -
+#   echo "Cron-задача успешно добавлена!"
+# else
+#   echo "Эта задача уже существует в crontab."
+# fi
 
 # Первое выполнение скрипта
 echo "Выполнение скрипта."
 
-echo "Требуется создать фаил с логином и паролем"
-# Запрос логина и пароля у пользователя
-read -p "Введите логин: " login
-read -sp "Введите пароль: " password
-echo
-# Имя файла, в который будут записаны данные
-filename="login.txt"
-# Запись логина и пароля в файл в нужном формате
-echo "login = '$login'" > "$filename"
-echo "password = '$password'" >> "$filename"
-chmod 644 "$filename"
-mv "$filename" src/
+# echo "Требуется создать фаил с логином и паролем"
+# # Запрос логина и пароля у пользователя
+# read -p "Введите логин: " login
+# read -sp "Введите пароль: " password
+# echo
+# # Имя файла, в который будут записаны данные
+# filename="login.txt"
+# # Запись логина и пароля в файл в нужном формате
+# echo "login = '$login'" > "$filename"
+# echo "password = '$password'" >> "$filename"
+# chmod 644 "$filename"
+# mv "$filename" src/
 
 # Копирование всех файлов в рабочую папку
 SRC_DIR=$(pwd)
@@ -65,9 +65,9 @@ mkdir -p "$DEST_DIR"
 cp -r "$SRC_DIR"/* "$DEST_DIR"/
 echo "Все файлы успешно скопированы в $DEST_DIR"
 
-# Удаление login.txt
-rm -f src/"$filename"
-echo "фаил с логином удален"
+# # Удаление login.txt
+# rm -f src/"$filename"
+# echo "фаил с логином удален"
 
 python3 "$DEST_DIR"/main.py
 

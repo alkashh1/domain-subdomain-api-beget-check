@@ -123,6 +123,8 @@ def main():
     scripts = [
         "domain.py",
         "subdomain.py",
+        "regrudomain.py",
+        "totxtregru.py",
     ]   
 
     # Запускаем каждый скрипт по порядку
@@ -150,6 +152,8 @@ def main():
     try:
         os.remove('domain.json')
         os.remove('subdomain.json')
+        os.remove('res1.json')
+        os.remove('res2.json')
         print("Временные файлы удалены")
     except FileNotFoundError as e:
         print(f"Ошибка при удалении файлов: {e}")
