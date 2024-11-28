@@ -8,3 +8,4 @@ manual.txt
 auto.txt
 src/loginregru.txt
 regru.txt
+.gitlab-ci.yml
