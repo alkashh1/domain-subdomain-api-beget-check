@@ -9,3 +9,6 @@ auto.txt
 src/loginregru.txt
 regru.txt
 .gitlab-ci.yml
+free.txt
+close.txt
+log_freed.txt

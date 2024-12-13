@@ -146,7 +146,18 @@ def main():
     domain_tree = build_domain_tree(domain_data, subdomain_data)
 
     # Запись дерева доменов в файл и создание ssl/nossl/auto файлов
-    write_domain_tree_to_file(domain_tree, 'domain_tree.txt', 'ssl.txt', 'nossl.txt', 'auto.txt')
+    auto_filename = 'auto.txt'
+    write_domain_tree_to_file(domain_tree, 'domain_tree.txt', 'ssl.txt', 'nossl.txt', auto_filename)
+
+    # Выполнение freedomain.py после создания auto.txt
+    freedomain_script = "freedomain.py"
+    print(f"Запуск скрипта: {freedomain_script}")
+    try:
+        subprocess.run(["python3", freedomain_script], check=True)
+        print(f"Скрипт freedomain.py выполнен успешно")
+    except subprocess.CalledProcessError as e:
+        print(f"Ошибка при выполнении скрипта freedomain.py: {e}")
+        return
 
     # Удаление файлов JSON
     try:
