@@ -25,15 +25,15 @@ def load_json(filename):
 
 # Функция для проверки наличия SSL
 def check_ssl(domain):
-    print(f"Проверка SSL для домена: {domain}")
+    #print(f"Проверка SSL для домена: {domain}")
     try:
         context = ssl.create_default_context()
         with socket.create_connection((domain, 443), timeout=3) as sock:
             with context.wrap_socket(sock, server_hostname=domain) as ssock:
-                print(f"SSL-сертификат найден для домена: {domain}")
+                #print(f"SSL-сертификат найден для домена: {domain}")
                 return True
     except (ssl.SSLError, socket.error) as e:
-        print(f"SSL-сертификат отсутствует для домена {domain} или произошла ошибка: {e}")
+        # print(f"SSL-сертификат отсутствует для домена {domain} или произошла ошибка: {e}")
         return False
 
 # Функция для построения дерева доменов и поддоменов

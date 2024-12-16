@@ -12,3 +12,6 @@ regru.txt
 free.txt
 close.txt
 log_freed.txt
+critical_log.txt
+/tg_bot/cred.txt
+bot.log

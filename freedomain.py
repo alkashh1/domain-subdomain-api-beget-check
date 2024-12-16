@@ -3,14 +3,22 @@ import aiohttp
 import time
 import dns.resolver
 
-def log_message(message):
-    print(message)
-    with open("log_freed.txt", "a") as log_file:
-        log_file.write(message + "\n")
+MAX_RETRIES = 5
 
-def clear_log():
+# Add server retry limit
+SERVER_RETRY_LIMIT = 3
+
+def log_message(message, critical=False):
+    #print(message)
+    log_file = "critical_log.txt" if critical else "log_freed.txt"
+    with open(log_file, "a") as log:
+        log.write(message + "\n")
+
+def clear_logs():
     with open("log_freed.txt", "w") as log_file:
         log_file.write("")
+    with open("critical_log.txt", "w") as critical_log:
+        critical_log.write("")
 
 def format_elapsed_time(elapsed_time):
     days = int(elapsed_time // 86400)
@@ -19,24 +27,6 @@ def format_elapsed_time(elapsed_time):
     seconds = elapsed_time % 60
     return f"{days} дней, {hours} часов, {minutes} минут, {seconds:.2f} секунд"
 
-async def query_doh(session, domain, record_type, doh_servers):
-    for server in doh_servers:
-        url = f"{server}/dns-query"
-        headers = {"accept": "application/dns-json"}
-        params = {"name": domain, "type": record_type}
-        try:
-            async with session.get(url, headers=headers, params=params, timeout=10) as response:
-                if response.headers.get("Content-Type") != "application/dns-json":
-                    log_message(f"Некорректный формат ответа для {domain} ({record_type}) от {server}: {response.headers.get('Content-Type')}")
-                    continue
-                data = await response.json()
-                if "Answer" in data:
-                    return {answer["data"].strip('"') for answer in data["Answer"]}
-                return set()
-        except Exception as e:
-            log_message(f"Ошибка при использовании DoH для {domain} ({record_type}) на {server}: {e}")
-    return None
-
 def query_dns(domain, record_type):
     try:
         resolver = dns.resolver.Resolver()
@@ -44,86 +34,81 @@ def query_dns(domain, record_type):
         resolver.lifetime = 10
         answers = resolver.resolve(domain, record_type)
         return {answer.to_text() for answer in answers}
+    except dns.resolver.NXDOMAIN:
+        log_message(f"{domain}: NXDOMAIN - Домен не существует для запроса {record_type}", critical=True)
+        return set()
     except Exception as e:
-        log_message(f"Ошибка при использовании локального DNS для {domain} ({record_type}): {e}")
+        log_message(f"Ошибка при использовании локального DNS для {domain} ({record_type}): {e}", critical=True)
         return None
 
-async def check_domain(session, domain, beget_patterns, standard_subdomains, doh_servers):
-    is_free = True
+async def normalize_txt_records(records):
+    """Remove surrounding quotes from TXT records."""
+    return {record.strip('"') for record in records}
+
+async def check_domain(session, domain, beget_patterns):
     try:
         log_message(f"Проверка домена: {domain}")
-        tasks = [
-            query_doh(session, domain, "A", doh_servers),
-            query_doh(session, domain, "MX", doh_servers),
-            query_doh(session, domain, "TXT", doh_servers),
-            query_doh(session, f"autoconfig.{domain}", "CNAME", doh_servers),
-            query_doh(session, f"autodiscover.{domain}", "CNAME", doh_servers),
-            query_doh(session, f"*.{domain}", "A", doh_servers)
-        ]
-        results = await asyncio.gather(*tasks)
 
-        a_records, mx_records, txt_records, autoconfig_cname, autodiscover_cname, subdomain_a_records = results
+        # Step 1: Check A records to verify Beget DNS
+        a_records = query_dns(domain, "A")
 
-        if a_records is None:
-            a_records = query_dns(domain, "A")
-        if a_records is None or a_records != beget_patterns["A"]:
-            log_message(f"{domain}: A-записи не соответствуют ожиданиям.")
-            is_free = False
+        log_message(f"{domain}: Полученные A-записи: {a_records}")
+        log_message(f"{domain}: Ожидаемые A-записи: {beget_patterns['A']}")
 
-        if mx_records is None:
-            mx_records = query_dns(domain, "MX")
-        if mx_records is None or mx_records != beget_patterns["MX"]:
-            log_message(f"{domain}: MX-записи не соответствуют ожиданиям.")
-            is_free = False
+        if a_records is None or not a_records:
+            log_message(f"{domain}: Не удалось получить A-записи. Домен помечен как временно недоступный.", critical=True)
+            return domain, False
 
-        if txt_records is None:
-            txt_records = query_dns(domain, "TXT")
-        if txt_records is None or not txt_records.issubset(beget_patterns["TXT"]):
-            log_message(f"{domain}: TXT-записи не соответствуют ожиданиям.")
-            is_free = False
+        if not a_records.issubset(beget_patterns["A"]):
+            log_message(f"{domain}: A-записи не совпадают с ожидаемыми.")
+            return domain, False
 
-        if autoconfig_cname is None:
-            autoconfig_cname = query_dns(f"autoconfig.{domain}", "CNAME")
-        if autoconfig_cname is None or autoconfig_cname != beget_patterns["CNAME"]:
-            log_message(f"{domain}: CNAME-записи для autoconfig не соответствуют ожиданиям.")
-            is_free = False
+        # Step 2: Check critical subdomains
+        critical_subdomains = [f"_dmarc.{domain}", f"dm.{domain}"]
 
-        if autodiscover_cname is None:
-            autodiscover_cname = query_dns(f"autodiscover.{domain}", "CNAME")
-        if autodiscover_cname is None or autodiscover_cname != beget_patterns["CNAME"]:
-            log_message(f"{domain}: CNAME-записи для autodiscover не соответствуют ожиданиям.")
-            is_free = False
+        # Dynamically check all selectors for _domainkey
+        domainkey_subdomain = f"_domainkey.{domain}"
+        txt_records = query_dns(domainkey_subdomain, "TXT")
+        if txt_records is not None and len(txt_records) > 0:
+            for record in txt_records:
+                if not record.startswith("selector."):
+                    log_message(f"{domain}: Найдена неизвестная запись {record} для _domainkey. Домен исключается.")
+                    return domain, False
 
-        if subdomain_a_records is None:
-            subdomain_a_records = query_dns(f"*.{domain}", "A")
-        if subdomain_a_records:
-            for record in subdomain_a_records:
-                if not any(record.startswith(f"{std}.{domain}") for std in standard_subdomains):
-                    log_message(f"{domain}: Найден нестандартный поддомен с A-записью: {record}")
-                    is_free = False
+        for subdomain in critical_subdomains:
+            txt_records = query_dns(subdomain, "TXT")
+            if txt_records is not None and len(txt_records) > 0:
+                log_message(f"{domain}: Найден критический поддомен {subdomain}. Домен исключается.")
+                return domain, False
+
+        # Step 3: Check TXT records for non-standard entries
+        txt_records = query_dns(domain, "TXT")
+
+        log_message(f"{domain}: Полученные TXT-записи: {txt_records}")
+        log_message(f"{domain}: Ожидаемые шаблоны TXT: {beget_patterns['TXT']}")
+
+        # Normalize TXT records
+        if txt_records is not None:
+            txt_records = await normalize_txt_records(txt_records)
+
+        if txt_records is not None and not txt_records.issubset(beget_patterns["TXT"]):
+            log_message(f"{domain}: TXT-записи содержат нестандартные данные: {txt_records}")
+            return domain, False
+
+        log_message(f"{domain}: Домен признан свободным.")
+        return domain, True
 
     except Exception as e:
-        log_message(f"Ошибка при проверке домена {domain}: {e}")
-        is_free = False
-    return domain, is_free
+        log_message(f"Ошибка при проверке домена {domain}: {e}", critical=True)
+        return domain, False
 
 async def check_domains(domains_file):
-    clear_log()
+    clear_logs()
 
     beget_patterns = {
         "A": {"5.101.153.235"},
-        "MX": {"20 mx2.beget.com.", "10 mx1.beget.com."},
-        "TXT": {"v=spf1 redirect=beget.com"},
-        "CNAME": {"autoconfig.beget.com."}
+        "TXT": {"v=spf1 redirect=beget.com"}
     }
-
-    standard_subdomains = {"autoconfig", "autodiscover", "www"}
-
-    doh_servers = [
-        "https://dns.google",
-        "https://cloudflare-dns.com",
-        "https://doh.opendns.com"
-    ]
 
     free_domains = []
     close_domains = []
@@ -134,7 +119,7 @@ async def check_domains(domains_file):
         domains = [line.strip() for line in f.readlines() if line.strip()]
 
     async with aiohttp.ClientSession() as session:
-        tasks = [check_domain(session, domain, beget_patterns, standard_subdomains, doh_servers) for domain in domains]
+        tasks = [check_domain(session, domain, beget_patterns) for domain in domains]
         results = await asyncio.gather(*tasks)
 
     for domain, is_free in results:
@@ -158,3 +143,4 @@ async def check_domains(domains_file):
 
 if __name__ == "__main__":
     asyncio.run(check_domains("auto.txt"))
+    
