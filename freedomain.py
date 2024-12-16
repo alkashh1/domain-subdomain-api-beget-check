@@ -5,7 +5,6 @@ import dns.resolver
 
 MAX_RETRIES = 5
 
-# Add server retry limit
 SERVER_RETRY_LIMIT = 3
 
 def log_message(message, critical=False):

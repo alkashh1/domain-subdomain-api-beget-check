@@ -6,7 +6,6 @@ import subprocess
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
-# Настройка логирования
 logging.basicConfig(
     filename="bot.log",
     level=logging.INFO,
@@ -14,21 +13,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Bot")
 
-# Конфигурация из cred.txt
 config = configparser.ConfigParser()
 config.read('/Users/romanzharkov/Documents/GitHub/domain-subdomain-api-beget-check/tg_bot/cred.txt')
 PASSWORD = config['DEFAULT']['pass']
 TOKEN = config['DEFAULT']['token']
 
-# Конфигурация
 FILES_DIR = '/Users/romanzharkov/Documents/GitHub/domain-subdomain-api-beget-check'
 files_to_check = ["free.txt", "close.txt", "ssl_https.txt", "ssl.txt", "nossl.txt", "domain_tree.txt"]
 
-# Списки пользователей
 authorized_users = set()
 awaiting_password = set()
 
-# Функция для обработки команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     username = update.effective_user.username
@@ -42,7 +37,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Добро пожаловать! Пожалуйста, введите пароль для авторизации."
         )
 
-# Функция для обработки пароля
 async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     username = update.effective_user.username
@@ -61,7 +55,6 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"Ошибка ввода пароля пользователем {username} (ID: {user_id})")
             await update.message.reply_text("Неверный пароль. Попробуйте еще раз.")
 
-# Меню с кнопками
 async def show_menu(update: Update):
     keyboard = [
         [InlineKeyboardButton("List Files", callback_data="list_files")],
@@ -74,7 +67,6 @@ async def show_menu(update: Update):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Выберите действие:", reply_markup=reply_markup)
 
-# Функция для обработки действий из меню
 async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -107,16 +99,13 @@ async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.message.reply_text("Неизвестная команда. Пожалуйста, выберите из меню.")
 
-# Разбить текст на части для Telegram
 async def send_long_message(update, text):
     chunk_size = 4000
     for i in range(0, len(text), chunk_size):
         await update.message.reply_text(text[i:i + chunk_size])
 
-# Функция для запуска скриптов main.py и merge.py
 async def run_scripts(update: Update):
     try:
-        # Уведомление о запуске main.py
         await update.message.reply_text("Запуск скрипта main.py. Пожалуйста, подождите...")
         logger.info("Запуск main.py")
 
@@ -131,7 +120,6 @@ async def run_scripts(update: Update):
             await send_long_message(update, f"Ошибка выполнения main.py:\n{main_process.stderr}")
             return
 
-        # Уведомление о запуске merge.py
         await update.message.reply_text("Запуск скрипта merge.py. Пожалуйста, подождите...")
         logger.info("Запуск merge.py")
 
@@ -148,19 +136,17 @@ async def run_scripts(update: Update):
         logger.exception(f"Ошибка при выполнении скриптов: {e}")
         await update.message.reply_text("Произошла ошибка при выполнении скриптов.")
 
-# Функция для отправки файла
+
 async def send_file_with_timestamp(update: Update, filepath: str):
     try:
         absolute_path = os.path.join(FILES_DIR, filepath)
         logger.info(f"Попытка отправить файл: {absolute_path}")
 
-        # Проверка существования файла
         if not os.path.exists(absolute_path):
             logger.error(f"Файл {filepath} не найден.")
             await update.message.reply_text(f"Файл {filepath} не найден.")
             return
 
-        # Проверка размера файла
         file_size = os.path.getsize(absolute_path)
         if file_size > 50 * 1024 * 1024:
             logger.error(f"Файл {filepath} превышает лимит 50 МБ: {file_size / (1024 * 1024):.2f} МБ")
@@ -181,7 +167,6 @@ async def send_file_with_timestamp(update: Update, filepath: str):
         logger.exception(f"Ошибка при отправке файла {filepath}: {e}")
         await update.message.reply_text("Произошла ошибка при отправке файла.")
 
-# Функция для вывода списка файлов
 async def list_files(update: Update):
     try:
         logger.info("Попытка получения списка файлов.")
@@ -197,16 +182,13 @@ async def list_files(update: Update):
         logger.exception(f"Ошибка при получении списка файлов: {e}")
         await update.message.reply_text("Произошла ошибка при получении списка файлов.")
 
-# Главная функция
 def main():
     application = Application.builder().token(TOKEN).build()
 
-    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_password))
     application.add_handler(CallbackQueryHandler(handle_action))
 
-    # Запуск бота
     logger.info("Бот запущен")
     application.run_polling()
 
