@@ -14,4 +14,6 @@ close.txt
 log_freed.txt
 critical_log.txt
 /tg_bot/cred.txt
+/tg_bot/test.py
 bot.log
+A.txt
