@@ -1,0 +1,43 @@
+{
+    "status": "success",
+    "answer": {
+        "status": "success",
+        "result": [
+            {
+                "id": 9674560,
+                "fqdn": "gate.crmcalls.ru",
+                "domain_id": 9674558
+            },
+            {
+                "id": 9818913,
+                "fqdn": "lcab.crmcalls.ru",
+                "domain_id": 9674558
+            },
+            {
+                "id": 9672990,
+                "fqdn": "calls.crmleads.tech",
+                "domain_id": 8859305
+            },
+            {
+                "id": 9674530,
+                "fqdn": "gate.crmleads.tech",
+                "domain_id": 8859305
+            },
+            {
+                "id": 9271616,
+                "fqdn": "network.crmleads.tech",
+                "domain_id": 8859305
+            },
+            {
+                "id": 10336561,
+                "fqdn": "pixel.crmleads.tech",
+                "domain_id": 8859305
+            },
+            {
+                "id": 10543720,
+                "fqdn": "lk.zolokesh.ru",
+                "domain_id": 10236297
+            }
+        ]
+    }
+}

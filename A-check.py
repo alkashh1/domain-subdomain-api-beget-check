@@ -15,10 +15,10 @@ def check_a_records(input_file, output_file):
             outfile.write(result + '\n')
 
 if __name__ == "__main__":
-    # input_file_A = '/home/zabbix/scripts/DomainTree/ssl_https.txt'
-    # output_file_a_all = '/home/zabbix/scripts/DomainTree/A.txt'
+    input_file_A = '/home/zabbix/scripts/DomainTree/ssl_https.txt'
+    output_file_a_all = '/home/zabbix/scripts/DomainTree/A.txt'
     # /Users/romanzharkov/Documents/GitHub/domain-subdomain-api-beget-check/
-    input_file_A = '/Users/romanzharkov/Documents/GitHub/domain-subdomain-api-beget-check/ssl_https.txt'
-    output_file_a_all = '/Users/romanzharkov/Documents/GitHub/domain-subdomain-api-beget-check/A.txt'
+    # input_file_A = '/Users/romanzharkov/Documents/GitHub/domain-subdomain-api-beget-check/ssl_https.txt'
+    # output_file_a_all = '/Users/romanzharkov/Documents/GitHub/domain-subdomain-api-beget-check/A.txt'
     check_a_records(input_file_A, output_file_a_all)
     print(f"Результаты сохранены в {output_file_a_all}")
