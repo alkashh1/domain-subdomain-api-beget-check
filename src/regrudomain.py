@@ -28,18 +28,20 @@ def is_valid_response(data):
     except (TypeError, KeyError):
         return False
 
-# Функция для получения списка доменов и сохранения результатов
 def get_domains(username, password, result_index):
-    # Формирование полного URL с подстановкой логина и пароля
-    full_url = (
-        f"{BASE_URL}?input_data={{\"servtype\":\"domain\"}}&input_format=json&"
-        f"output_content_type=plain&username={username}&password={password}"
-    )
-    
+    # Формирование данных для отправки в теле запроса
+    payload = {
+        "input_data": '{"servtype":"domain"}',
+        "input_format": "json",
+        "output_content_type": "plain",
+        "username": username,
+        "password": password
+    }
+
     data = None
     while not is_valid_response(data):
         try:
-            response = requests.get(full_url)
+            response = requests.post(BASE_URL, data=payload)
             response.raise_for_status()
             data = response.json()
             if not is_valid_response(data):
