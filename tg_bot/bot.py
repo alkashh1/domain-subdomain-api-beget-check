@@ -64,11 +64,11 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Меню с кнопками
 async def show_menu(update: Update):
     keyboard = [
-        [InlineKeyboardButton("List Files", callback_data="list_files")],
+        [InlineKeyboardButton("List Files", callback_data="list_files"), InlineKeyboardButton("Run restore", callback_data="run_restore")],
         [InlineKeyboardButton("Free Beget Domain", callback_data="free_beget_domain"), InlineKeyboardButton("Close Beget Domain", callback_data="close_beget_domain")],
         [InlineKeyboardButton("SSL Domain", callback_data="ssl_domain"), InlineKeyboardButton("No SSL Domain", callback_data="no_ssl_domain")],
         [InlineKeyboardButton("All Domain", callback_data="all_domain"), InlineKeyboardButton("Domain Tree", callback_data="domain_tree")],
-        [InlineKeyboardButton("Run Scripts", callback_data="run_scripts")]
+        [InlineKeyboardButton("Run Scripts", callback_data="run_scripts"), InlineKeyboardButton("Restore Date", callback_data="restore")]
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -104,6 +104,10 @@ async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_file_with_timestamp(query, "domain_tree.txt")
     elif action == "run_scripts":
         await run_scripts(query)
+    elif action == "run_restore":
+        await run_restore(query)
+    elif action == "restore":
+        await send_file_with_timestamp(query, "end.txt")
     else:
         await query.message.reply_text("Неизвестная команда. Пожалуйста, выберите из меню.")
 
@@ -112,6 +116,25 @@ async def send_long_message(update, text):
     chunk_size = 4000
     for i in range(0, len(text), chunk_size):
         await update.message.reply_text(text[i:i + chunk_size])
+
+
+async def run_restore(update: Update):
+    try:
+        await update.message.reply_text("Запуск скрипта main_story.py. Пожалуйста, подождите...")
+        logger.info("Запуск main_story.py")
+
+        merge_script_path = os.path.join(FILES_DIR, "main_story.py")
+        merge_process = subprocess.run(["python3", merge_script_path], capture_output=True, text=True)
+
+        if merge_process.returncode == 0:
+            logger.info("main_story.py выполнен успешно")
+            await send_long_message(update, f"main_story.py выполнен успешно. Вывод:\n{merge_process.stdout}")
+        else:
+            logger.error(f"Ошибка выполнения main_story.py: {merge_process.stderr}")
+            await send_long_message(update, f"Ошибка выполнения main_story.py:\n{merge_process.stderr}")
+    except Exception as e:
+        logger.exception(f"Ошибка при выполнении скрипта: {e}")
+        await update.message.reply_text("Произошла ошибка при выполнении скрипта.")
 
 # Функция для запуска скриптов main.py и merge.py
 async def run_scripts(update: Update):
